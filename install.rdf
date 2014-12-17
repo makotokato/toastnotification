@@ -10,14 +10,12 @@
   <em:bootstrap>true</em:bootstrap>
   <em:description>Replace XUL Alert with Windows 8's Toast Notification</em:description>
   <em:creator>Makoto Kato</em:creator>
-  <em:targetPlatform>WINNT_x86-msvc</targetPlatform>
-  <em:targetPlatform>WINNT_x86_64-msvc</targetPlatform>
 
   <em:targetApplication>
    <Description>
-    <em:id>{aa3c5121-dab2-40e2-81ca-7ea25febc110}</em:id>
-    <em:minVersion>37.0</em:minVersion>
-    <em:maxVersion>37.0</em:maxVersion>
+    <em:id>{ec8030f7-c20a-464f-9b0e-13a3a9e97384}</em:id>
+    <em:minVersion>36.0</em:minVersion>
+    <em:maxVersion>38.0</em:maxVersion>
    </Description>
   </em:targetApplication>
 

@@ -18,7 +18,7 @@ using namespace Microsoft::WRL::Wrappers;
 
 wchar_t* sAppId = nullptr;
 
-typedef bool (WINAPI *EventCallback)();
+typedef bool (*EventCallback)();
 
 class ToastNotificationHandler {
 	typedef ABI::Windows::UI::Notifications::IToastNotification IToastNotification;
@@ -82,9 +82,11 @@ ToastNotificationHandler::Init(const wchar_t* aTitle, const wchar_t* aMessage, c
 	if (FAILED(hr)) {
 		return false;
 	}
-	mName = _wcsdup(aName);
-	if (!mName) {
-		return false;
+	if (aName) {
+		mName = _wcsdup(aName);
+		if (!mName) {
+			return false;
+		}
 	}
 
 	return true;
@@ -135,12 +137,14 @@ ToastNotificationHandler::CreateWindowsNotificationFromXml(IXmlDocument* aXml)
 	HRESULT hr;
 	hr = GetActivationFactory(HStringReference(RuntimeClass_Windows_UI_Notifications_ToastNotification).Get(), factory.GetAddressOf());
 	if (FAILED(hr)) {
+		OutputDebugStringW(L"Cannot create IToastNotification\n");
 		return false;
 	}
 
 	ComPtr<IToastNotification> notification;
 	hr = factory->CreateToastNotification(aXml, &notification);
 	if (FAILED(hr)) {
+		OutputDebugStringW(L"Cannot create IToastNotification\n");
 		return false;
 	}
 
@@ -227,13 +231,13 @@ SetAppId()
 	if (!sAppId) {
 		WCHAR wszFilename[MAX_PATH];
 		GetModuleFileNameW(NULL, wszFilename, MAX_PATH);
-		wchar_t* slash = wcschr(wszFilename, '\\');
+		wchar_t* slash = wcsrchr(wszFilename, '\\');
 		if (slash) {
 			*slash = '\0';
 		}
 
 		HKEY key;
-		if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\Mozilla\\Firefox\\TaskBarIDs", 0, 0, &key) == ERROR_SUCCESS) {
+		if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\Mozilla\\Firefox\\TaskBarIDs", 0, KEY_QUERY_VALUE, &key) == ERROR_SUCCESS) {
 			WCHAR value[MAX_PATH];
 			DWORD type = REG_SZ;
 			DWORD len = sizeof(value);

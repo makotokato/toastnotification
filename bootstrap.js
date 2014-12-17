@@ -6,21 +6,28 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
 const Cu = Components.utils;
+const Cm = Components.manager;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/ctypes.jsm");
+Cu.import("resource://gre/modules/FileUtils.jsm");
 
 var sLibrary;
+var sCallbacks = new Array();
+
+function GetBinaryFile()
+{
+  if (ctypes.voidptr_t.size == 4) {
+    return FileUtils.getFile("ProfD", ["extensions", "toast-alert@wontfix.net", "ToastNotification.dll"]);
+  }
+  return FileUtils.getFile("ProfD", ["extensions", "toast-alert@wontfix.net", "ToastNotification64.dll"]);
+}
 
 function IsSupported()
 {
   if (!sLibrary) {
-  	if (ctypes.voidptr_t.size == 4) {
-      sLibrary = ctypes.open("toast32.dll");
-    } else {
-      sLibrary = ctypes.open("toast64.dll");
-    }
+    sLibrary = ctypes.open(GetBinaryFile().path);
   }
 
   var setAppId = sLibrary.declare("SetAppId",
@@ -36,38 +43,41 @@ function ToastAlertService()
 ToastAlertService.prototype = {
   showAlertNotification: function(aImageUrl, aTitle, aText, aTextClickable,
                                   aCookie, aListener, aName, aDir, aLang,
-                                  aPrincipal) {
-  	if (ctypes.voidptr_t.size == 4) {
-      this._library = ctypes.open("toast32.dll");
-    } else {
-      this._library = ctypes.open("toast64.dll");
-    } 
+                                  aData, aPrincipal, aInPrivateBrowsing) {
+    var callbackPtr = ctypes.FunctionType(ctypes.stdcall_abi, ctypes.void_t).ptr;
 
-    var DisplayToastNotification = this._library.declare("DisplayToastNotification",
+    var DisplayToastNotification = sLibrary.declare("DisplayToastNotification",
                                      ctypes.winapi_abi,
                                      ctypes.bool,
                                      ctypes.jschar.ptr,
                                      ctypes.jschar.ptr,
                                      ctypes.jschar.ptr,
-                                     ctypes.FunctionType(ctypes.winapi_abi,
-                                                         ctypes.void_t),
-                                     ctypes.FunctionType(ctypes.winapi_abi,
-                                                         ctypes.void_t));
+                                     callbackPtr,
+                                     callbackPtr);
 
+    var callbackClick = callbackPtr(function() {
+      if (this.listener) {
+        this.listener.observe(null, "alertclickcallback", this.cookie);
+      }
+    },
+    { listener: aListener, cookie: aCookie });
 
-    if (!DisplayToastNotification(aTitle, aText, aName,
-                                  () => {
-                   	                if (aListener && aTextClickable) {
-                   	                  aListener.observe(null, "alertclickcallback", aCookie);
-                                    }
-                                  },
-                                  () => {
-                   	                if (aListener) {
-                                      aListener.observe(null, "alertfinished", aCookie);
-                                    }
-                                    this._library.close();
-                                    this._library = null;
-                                  })) {
+    var callbackClose = callbackPtr(function() {
+      if (this.listener) {
+        this.listener.observe(null, "alertfinished", this.cookie);
+      }
+      sCallbacks.forEach(function(element) {
+        if (element.name === this.aName) {
+          sCallbacks.pop(element);
+        }      
+      });
+    },
+    { listener: aListener, cookie: aCookie, name: aName });
+
+    // keep callback objects for GC
+    sCallbacks.push({click: callbackClick, close: callbackClose, name: aName});
+
+    if (!DisplayToastNotification(aTitle, aText, aName, callbackClick, callbackClose)) {
     	throw Cr.NS_ERROR_FAILURE;
     }
 
@@ -77,23 +87,18 @@ ToastAlertService.prototype = {
   },
 
   closeAlert: function(aName, aPrincipal) {
-  	if (!this._library) {
-  	  return;
-  	}
-    var CloseToastNotification = this._library.declare("CloseToastNotification",
+    var CloseToastNotification = sLibrary.declare("CloseToastNotification",
                                      ctypes.winapi_abi,
                                      ctypes.bool,
                                      ctypes.jschar.ptr);
     CloseToastNotification(aName);
   },
 
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIAlertService]),
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIAlertsService]),
 
   classDescription: "alert service using Windows 8 Toast",
   contractID: "@mozilla.org/system-alerts-service;1",
   classID: Components.ID("{6270a80b-07e3-481b-804a-644ed6bc991d}"),
-
-  _library: null,
 };
 
 var alertService = new ToastAlertService;
@@ -105,14 +110,14 @@ var factory = {
     }
     return alertService.QueryInterface(aIid);
   },
+  lockFactory: function(aLock) {
+    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+  },
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIFactory])
 };
 
 function registerComponents()
 {
-  if (!IsSupported()) {
-    return;
-  }
-
   let registrar = Components.manager.QueryInterface(Ci.nsIComponentRegistrar);
   registrar.registerFactory(alertService.classID,
                             alertService.classDescription,
@@ -123,7 +128,7 @@ function registerComponents()
 function unregisterComponents()
 {
   if (sLibrary) {
-  	sLibrary.close();
+    sLibrary.close();
     sLibrary = null;
   }
   try {
@@ -144,6 +149,9 @@ function uninstall(aData, aReason)
 
 function startup(aData, aReason)
 {
+  if (!IsSupported()) {
+    return;
+  }
   registerComponents();
 }
 
