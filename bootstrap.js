@@ -136,18 +136,18 @@ function unregisterComponents()
 
 function install(aData, aReason)
 {
-  registerComponents();
 }
 
 function uninstall(aData, aReason)
 {
-  unregisterComponents();
 }
 
 function startup(aData, aReason)
 {
+  registerComponents();
 }
 
 function shutdown(aData, aReason)
 {
+  unregisterComponents();
 }
