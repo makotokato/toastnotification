@@ -134,7 +134,7 @@ function unregisterComponents()
   }
 }
 
-functioe install(aData, aReason)
+function install(aData, aReason)
 {
   registerComponents();
 }
