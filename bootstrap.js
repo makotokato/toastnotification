@@ -55,19 +55,22 @@ ToastAlertService.prototype = {
                                      callbackPtr,
                                      callbackPtr);
 
-    var callbackClick = callbackPtr(function() {
-      if (this.listener) {
-        this.listener.observe(null, "alertclickcallback", this.cookie);
-      }
-    },
-    { listener: aListener, cookie: aCookie });
+    var callbackClick = null;
+    if (aTextClickable) {
+      callbackClick = callbackPtr(function() {
+        if (this.listener) {
+          this.listener.observe(null, "alertclickcallback", this.cookie);
+        }
+      },
+      { listener: aListener, cookie: aCookie });
+    }
 
     var callbackClose = callbackPtr(function() {
       if (this.listener) {
         this.listener.observe(null, "alertfinished", this.cookie);
       }
       sCallbacks.forEach(function(element) {
-        if (element.name === this.aName) {
+        if (element.name === this.name) {
           sCallbacks.pop(element);
         }      
       });
