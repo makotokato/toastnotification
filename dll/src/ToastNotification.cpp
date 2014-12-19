@@ -110,8 +110,6 @@ ToastNotificationHandler::Init(const wchar_t* aTitle, const wchar_t* aMessage, c
 
 	mThreadId = GetCurrentThreadId();
 
-	sNotifications.push_back(this);
-
 	return true;
 }
 
@@ -305,6 +303,8 @@ DisplayToastNotification(const wchar_t* aTitle, const wchar_t* aMessage, const w
 		return false;
 	}
 
+	sNotifications.push_back(handler);
+
 	return true;
 }
 
@@ -314,8 +314,9 @@ CloseToastNotification(const wchar_t* aName)
 {
 	std::vector<void*>::iterator iter = sNotifications.begin();
 	while (sNotifications.end() != iter) {
-		ToastNotificationHandler* handler = (ToastNotificationHandler*) (*iter);
+		ToastNotificationHandler* handler = reinterpret_cast<ToastNotificationHandler*>(*iter);
 		if (!wcscmp(handler->GetName(), aName)) {
+			sNotifications.erase(iter);
 			handler->CloseNotification();
 			return true;
 		}
