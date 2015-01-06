@@ -20,9 +20,9 @@ using namespace Microsoft::WRL::Wrappers;
 class ToastNotificationHandler;
 
 static wchar_t* sAppId = nullptr;
-static std::vector<void*> sNotifications;
+static std::vector<ToastNotificationHandler*> sNotifications;
 
-typedef bool (*EventCallback)();
+typedef bool (STDAPICALLTYPE *EventCallback)();
 
 class ToastNotificationHandler {
 	typedef ABI::Windows::UI::Notifications::IToastNotification IToastNotification;
@@ -69,7 +69,7 @@ private:
 
 ToastNotificationHandler::~ToastNotificationHandler()
 {
-	std::vector<void*>::iterator iter = sNotifications.begin();
+	std::vector<ToastNotificationHandler*>::iterator iter = sNotifications.begin();
 	while (sNotifications.end() != iter) {
 		if (*iter == this) {
 			sNotifications.erase(iter);
@@ -226,7 +226,9 @@ ToastNotificationHandler::DisplayNotification(EventCallback aActivate, EventCall
 bool
 ToastNotificationHandler::CloseNotification()
 {
-	mNotifier->Hide(mNotification.Get());
+	if (mNotifier && mNotification) {
+		mNotifier->Hide(mNotification.Get());
+	}
 	return true;
 }
 
@@ -312,13 +314,19 @@ extern "C"
 bool WINAPI
 CloseToastNotification(const wchar_t* aName)
 {
-	std::vector<void*>::iterator iter = sNotifications.begin();
+	if (!aName) {
+		return false;
+	}
+	std::vector<ToastNotificationHandler*>::iterator iter = sNotifications.begin();
 	while (sNotifications.end() != iter) {
-		ToastNotificationHandler* handler = reinterpret_cast<ToastNotificationHandler*>(*iter);
-		if (!wcscmp(handler->GetName(), aName)) {
-			sNotifications.erase(iter);
-			handler->CloseNotification();
-			return true;
+		ToastNotificationHandler* handler = *iter;
+		if (handler) {
+			if (!wcscmp(handler->GetName(), aName)) {
+				sNotifications.erase(iter);
+				handler->CloseNotification();
+				delete handler;
+				return true;
+			}
 		}
 		iter++;
 	}
