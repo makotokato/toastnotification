@@ -6,7 +6,7 @@
   <em:type>2</em:type>
   <em:unpack>true</em:unpack>
   <em:name>Toast Notification Alerter Add-on for Windows 8</em:name>
-  <em:version>0.1</em:version>
+  <em:version>0.1.1</em:version>
   <em:bootstrap>true</em:bootstrap>
   <em:description>Replace XUL Alert with Windows 8's Toast Notification</em:description>
   <em:creator>Makoto Kato</em:creator>

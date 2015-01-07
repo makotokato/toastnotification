@@ -99,7 +99,7 @@ ToastAlertService.prototype = {
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIAlertsService]),
 
-  classDescription: "alert service using Windows 8 Toast",
+  classDescription: "alert service using Windows 8 native toast",
   contractID: "@mozilla.org/system-alerts-service;1",
   classID: Components.ID("{6270a80b-07e3-481b-804a-644ed6bc991d}"),
 };
