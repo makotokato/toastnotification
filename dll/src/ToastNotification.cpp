@@ -69,15 +69,6 @@ private:
 
 ToastNotificationHandler::~ToastNotificationHandler()
 {
-	std::vector<ToastNotificationHandler*>::iterator iter = sNotifications.begin();
-	while (sNotifications.end() != iter) {
-		if (*iter == this) {
-			sNotifications.erase(iter);
-			break;
-		}
-		iter++;
-	}
-
 	if (mTitle) {
 		WindowsDeleteString(mTitle);
 	}
@@ -93,11 +84,11 @@ bool
 ToastNotificationHandler::Init(const wchar_t* aTitle, const wchar_t* aMessage, const wchar_t* aName)
 {
 	HRESULT hr;
-	hr = WindowsCreateString(aTitle, (UINT32)wcslen(aTitle), &mTitle);
+	hr = WindowsCreateString(aTitle, static_cast<UINT32>(wcslen(aTitle)), &mTitle);
 	if (FAILED(hr)) {
 		return false;
 	}
-	hr = WindowsCreateString(aMessage, (UINT32)wcslen(aMessage), &mMessage);
+	hr = WindowsCreateString(aMessage, static_cast<UINT32>(wcslen(aMessage)), &mMessage);
 	if (FAILED(hr)) {
 		return false;
 	}
@@ -140,7 +131,9 @@ ComPtr<IXmlDocument>
 ToastNotificationHandler::InitializeXmlForTemplate(ToastTemplateType templateType)
 {
 	HRESULT hr;
-	hr = GetActivationFactory(HStringReference(RuntimeClass_Windows_UI_Notifications_ToastNotificationManager).Get(), mToastNotificationManagerStatics.GetAddressOf());
+	hr = GetActivationFactory(
+		HStringReference(RuntimeClass_Windows_UI_Notifications_ToastNotificationManager).Get(),
+		mToastNotificationManagerStatics.GetAddressOf());
 	if (FAILED(hr)) {
 		return nullptr;
 	}
@@ -155,7 +148,9 @@ ToastNotificationHandler::CreateWindowsNotificationFromXml(IXmlDocument* aXml)
 {
 	ComPtr<IToastNotificationFactory> factory;
 	HRESULT hr;
-	hr = GetActivationFactory(HStringReference(RuntimeClass_Windows_UI_Notifications_ToastNotification).Get(), factory.GetAddressOf());
+	hr = GetActivationFactory(
+		HStringReference(RuntimeClass_Windows_UI_Notifications_ToastNotification).Get(),
+		factory.GetAddressOf());
 	if (FAILED(hr)) {
 		return false;
 	}
@@ -167,19 +162,25 @@ ToastNotificationHandler::CreateWindowsNotificationFromXml(IXmlDocument* aXml)
 
 	if (mActivateCallback) {
 		EventRegistrationToken activatedToken;
-		hr = mNotification->add_Activated(Callback<ToastActivationHandler>(this, &ToastNotificationHandler::OnActivate).Get(), &activatedToken);
+		hr = mNotification->add_Activated(
+			Callback<ToastActivationHandler>(this, &ToastNotificationHandler::OnActivate).Get(),
+			&activatedToken);
 		if (FAILED(hr)) {
 			return false;
 		}
 	}
 
 	EventRegistrationToken dismissedToken;
-	hr = mNotification->add_Dismissed(Callback<ToastDismissHandler>(this, &ToastNotificationHandler::OnDismiss).Get(), &dismissedToken);
+	hr = mNotification->add_Dismissed(
+		Callback<ToastDismissHandler>(this, &ToastNotificationHandler::OnDismiss).Get(),
+		&dismissedToken);
 	if (FAILED(hr)) {
 		return false;
 	}
 
-	hr = mToastNotificationManagerStatics->CreateToastNotifierWithId(HStringReference(sAppId).Get(), mNotifier.GetAddressOf());
+	hr = mToastNotificationManagerStatics->CreateToastNotifierWithId(
+		HStringReference(sAppId).Get(),
+		mNotifier.GetAddressOf());
 	if (FAILED(hr)) {
 		return false;
 	}
@@ -253,6 +254,16 @@ ToastNotificationHandler::OnDismiss(IToastNotification* aNotification, IToastDis
 	if (mDismissCallback) {
 		mDismissCallback();
 	}
+
+	auto iter = sNotifications.begin();
+	while (sNotifications.end() != iter) {
+		if (*iter == this) {
+			sNotifications.erase(iter);
+			break;
+		}
+		iter++;
+	}
+
 	delete this;
 	return S_OK;
 }
@@ -261,6 +272,11 @@ extern "C"
 bool WINAPI
 SetAppId()
 {
+	// If having -no-remote option, Firefox doesn't start DDE.
+	if (_wgetenv(L"MOZ_NO_REMOTE")) {
+		return false;
+	}
+
 	if (!sAppId) {
 		WCHAR wszFilename[MAX_PATH];
 		GetModuleFileNameW(NULL, wszFilename, MAX_PATH);
@@ -314,17 +330,15 @@ extern "C"
 bool WINAPI
 CloseToastNotification(const wchar_t* aName)
 {
-	if (!aName) {
+	if (!aName || !*aName) {
 		return false;
 	}
-	std::vector<ToastNotificationHandler*>::iterator iter = sNotifications.begin();
+	auto iter = sNotifications.begin();
 	while (sNotifications.end() != iter) {
 		ToastNotificationHandler* handler = *iter;
 		if (handler) {
 			if (!wcscmp(handler->GetName(), aName)) {
-				sNotifications.erase(iter);
 				handler->CloseNotification();
-				delete handler;
 				return true;
 			}
 		}
