@@ -92,11 +92,9 @@ ToastNotificationHandler::Init(const wchar_t* aTitle, const wchar_t* aMessage, c
 	if (FAILED(hr)) {
 		return false;
 	}
-	if (aName) {
-		mName = _wcsdup(aName);
-		if (!mName) {
-			return false;
-		}
+	mName = _wcsdup(aName ? aName : L"");
+	if (!mName) {
+		return false;
 	}
 
 	mThreadId = GetCurrentThreadId();
