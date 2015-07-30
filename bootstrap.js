@@ -52,6 +52,7 @@ ToastAlertService.prototype = {
                                      ctypes.jschar.ptr,
                                      ctypes.jschar.ptr,
                                      ctypes.jschar.ptr,
+                                     ctypes.jschar.ptr,
                                      callbackPtr,
                                      callbackPtr);
 
@@ -80,7 +81,7 @@ ToastAlertService.prototype = {
     // keep callback objects for GC
     sCallbacks.push({click: callbackClick, close: callbackClose, name: aName});
 
-    if (!DisplayToastNotification(aTitle, aText, aName, callbackClick, callbackClose)) {
+    if (!DisplayToastNotification(aTitle, aText, aImageUrl, aName, callbackClick, callbackClose)) {
     	throw Cr.NS_ERROR_FAILURE;
     }
 

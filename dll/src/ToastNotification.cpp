@@ -36,13 +36,13 @@ class ToastNotificationHandler {
 	typedef __FITypedEventHandler_2_Windows__CUI__CNotifications__CToastNotification_Windows__CUI__CNotifications__CToastDismissedEventArgs ToastDismissHandler;
 
 public:
-	ToastNotificationHandler() : mTitle(nullptr), mMessage(nullptr), mName(nullptr), mActivateCallback(nullptr), mDismissCallback(nullptr)
+	ToastNotificationHandler() : mTitle(nullptr), mMessage(nullptr), mIcon(nullptr), mName(nullptr), mActivateCallback(nullptr), mDismissCallback(nullptr)
 	{
 	}
 
 	~ToastNotificationHandler();
 
-	bool Init(const wchar_t* aTitle, const wchar_t* aMessage, const wchar_t* aName);
+	bool Init(const wchar_t* aTitle, const wchar_t* aMessage, const wchar_t* aIcon, const wchar_t* aName);
 	bool DisplayNotification(EventCallback aActivate, EventCallback aDismiss);
 	bool CloseNotification();
 
@@ -60,6 +60,7 @@ private:
 	ComPtr<IToastNotifier> mNotifier;
 	HSTRING mTitle;
 	HSTRING mMessage;
+	HSTRING mIcon;
 	wchar_t* mName;
 	DWORD mThreadId;
 
@@ -75,13 +76,16 @@ ToastNotificationHandler::~ToastNotificationHandler()
 	if (mMessage) {
 		WindowsDeleteString(mMessage);
 	}
+	if (mIcon) {
+		WindowsDeleteString(mIcon);
+	}
 	if (mName) {
 		free(mName);
 	}
 }
 
 bool
-ToastNotificationHandler::Init(const wchar_t* aTitle, const wchar_t* aMessage, const wchar_t* aName)
+ToastNotificationHandler::Init(const wchar_t* aTitle, const wchar_t* aMessage, const wchar_t* aIcon, const wchar_t* aName)
 {
 	HRESULT hr;
 	hr = WindowsCreateString(aTitle, static_cast<UINT32>(wcslen(aTitle)), &mTitle);
@@ -91,6 +95,9 @@ ToastNotificationHandler::Init(const wchar_t* aTitle, const wchar_t* aMessage, c
 	hr = WindowsCreateString(aMessage, static_cast<UINT32>(wcslen(aMessage)), &mMessage);
 	if (FAILED(hr)) {
 		return false;
+	}
+	if (aIcon) {
+		WindowsCreateString(aIcon, static_cast<UINT32>(wcslen(aIcon)), &mIcon);
 	}
 	mName = _wcsdup(aName ? aName : L"");
 	if (!mName) {
@@ -123,6 +130,35 @@ SetNodeValueString(HSTRING inputString, ComPtr<IXmlNode> node, ComPtr<IXmlDocume
 	}
 
 	return true;
+}
+
+static void
+SetImageSrcToXml(IXmlDocument* aXmlDocument, HSTRING aImageUrl)
+{
+	HRESULT hr;
+	ComPtr<IXmlNodeList> toastImageElements;
+	hr = aXmlDocument->GetElementsByTagName(HStringReference(L"image").Get(),
+		toastImageElements.GetAddressOf());
+	if (FAILED(hr)) {
+		return;
+	}
+	ComPtr<IXmlNode> imageNodeRoot;
+	hr = toastImageElements->Item(0, &imageNodeRoot);
+	if (FAILED(hr)) {
+		return;
+	}
+	ComPtr<IXmlNamedNodeMap> attributes;
+	hr = imageNodeRoot->get_Attributes(&attributes);
+	if (FAILED(hr)) {
+		return;
+	}
+	ComPtr<IXmlNode> srcAttribute;
+	hr = attributes->GetNamedItem(HStringReference(L"src").Get(),
+		&srcAttribute);
+	if (FAILED(hr)) {
+		return;
+	}
+	SetNodeValueString(aImageUrl, srcAttribute.Get(), aXmlDocument);
 }
 
 ComPtr<IXmlDocument>
@@ -193,7 +229,7 @@ ToastNotificationHandler::CreateWindowsNotificationFromXml(IXmlDocument* aXml)
 bool
 ToastNotificationHandler::DisplayNotification(EventCallback aActivate, EventCallback aDismiss)
 {
-	ComPtr<IXmlDocument> toastXml = InitializeXmlForTemplate(ToastTemplateType::ToastTemplateType_ToastText03);
+	ComPtr<IXmlDocument> toastXml = InitializeXmlForTemplate(mIcon ? ToastTemplateType::ToastTemplateType_ToastImageAndText03 : ToastTemplateType::ToastTemplateType_ToastText03);
 	HRESULT hr;
 
 	ComPtr<IXmlNodeList> toastTextElements;
@@ -215,6 +251,10 @@ ToastNotificationHandler::DisplayNotification(EventCallback aActivate, EventCall
 
 	SetNodeValueString(mTitle, titleTextNodeRoot.Get(), toastXml.Get());
 	SetNodeValueString(mMessage, msgTextNodeRoot.Get(), toastXml.Get());
+
+	if (mIcon) {
+		SetImageSrcToXml(toastXml.Get(), mIcon);
+	}
 
 	mActivateCallback = aActivate;
 	mDismissCallback = aDismiss;
@@ -301,7 +341,7 @@ SetAppId()
 // external API to show toast notification via JS-CTYPES
 extern "C"
 bool WINAPI
-DisplayToastNotification(const wchar_t* aTitle, const wchar_t* aMessage, const wchar_t* aName, void* aCallbackActive, void* aCallbackDismiss)
+DisplayToastNotification(const wchar_t* aTitle, const wchar_t* aMessage, const wchar_t* aIcon, const wchar_t* aName, void* aCallbackActive, void* aCallbackDismiss)
 {
 	if (!sAppId) {
 		return false;
@@ -309,7 +349,7 @@ DisplayToastNotification(const wchar_t* aTitle, const wchar_t* aMessage, const w
 
 	ToastNotificationHandler* handler = new ToastNotificationHandler();
 
-	if (!handler->Init(aTitle, aMessage, aName)) {
+	if (!handler->Init(aTitle, aMessage, aIcon, aName)) {
 		delete handler;
 		return false;
 	}
