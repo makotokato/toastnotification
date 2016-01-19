@@ -1,3 +1,4 @@
+/* vim: set ts=2 ft=javascript */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -41,6 +42,13 @@ function ToastAlertService()
 }
 
 ToastAlertService.prototype = {
+  showAlert: function(aAlert, aListener) {
+    if (!aAlert) {
+      return;
+    }
+    this.showAlertNotification(aAlert.imageURL, aAlert.title, aAlert.text, aAlert.textClickable, aAlert.cookie, aListener, aAlert.name, aAlert.dir, aAlert.lang, aAlert.data, aAlert.inPrivateBrowsing);
+  },
+
   showAlertNotification: function(aImageUrl, aTitle, aText, aTextClickable,
                                   aCookie, aListener, aName, aDir, aLang,
                                   aData, aPrincipal, aInPrivateBrowsing) {
