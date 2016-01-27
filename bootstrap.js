@@ -46,7 +46,18 @@ ToastAlertService.prototype = {
     if (!aAlert) {
       return;
     }
-    this.showAlertNotification(aAlert.imageURL, aAlert.title, aAlert.text, aAlert.textClickable, aAlert.cookie, aListener, aAlert.name, aAlert.dir, aAlert.lang, aAlert.data, aAlert.inPrivateBrowsing);
+    this.showAlertNotification(aAlert.imageURL,
+                               aAlert.title,
+                               aAlert.text,
+                               aAlert.textClickable,
+                               aAlert.cookie,
+                               aListener,
+                               aAlert.name,
+                               aAlert.dir,
+                               aAlert.lang,
+                               aAlert.data,
+                               aAlert.principal,
+                               aAlert.inPrivateBrowsing);
   },
 
   showAlertNotification: function(aImageUrl, aTitle, aText, aTextClickable,
