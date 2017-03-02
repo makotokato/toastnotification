@@ -46,25 +46,24 @@ ToastAlertService.prototype = {
     if (!aAlert) {
       return;
     }
-    this.showAlertNotification(aAlert.imageURL,
-                               aAlert.title,
-                               aAlert.text,
-                               aAlert.textClickable,
-                               aAlert.cookie,
-                               aListener,
-                               aAlert.name,
-                               aAlert.dir,
-                               aAlert.lang,
-                               aAlert.data,
-                               aAlert.principal,
-                               aAlert.inPrivateBrowsing,
-                               aAlert.requireInteraction);
+    showNativeAlert(aAlert.imageURL,
+                    aAlert.title,
+                    aAlert.text,
+                    aAlert.textClickable,
+                    aAlert.cookie,
+                    aListener,
+                    aAlert.name);
   },
 
   showAlertNotification: function(aImageUrl, aTitle, aText, aTextClickable,
                                   aCookie, aListener, aName, aDir, aLang,
                                   aData, aPrincipal, aInPrivateBrowsing,
                                   aRequireInteraction) {
+    showNativeAlert(aImageUrl, aTitle, aText, aTextClickable, aCookie, aListener, aName);
+  }
+
+  showNativeAlert: function(aImageUrl, aTitle, aText, aTextClickable,
+                            aCookie, aListener, aName) {
     var callbackPtr = ctypes.FunctionType(ctypes.stdcall_abi, ctypes.void_t).ptr;
 
     var DisplayToastNotification = sLibrary.declare("DisplayToastNotification",
