@@ -57,12 +57,14 @@ ToastAlertService.prototype = {
                                aAlert.lang,
                                aAlert.data,
                                aAlert.principal,
-                               aAlert.inPrivateBrowsing);
+                               aAlert.inPrivateBrowsing,
+                               aAlert.requireInteraction);
   },
 
   showAlertNotification: function(aImageUrl, aTitle, aText, aTextClickable,
                                   aCookie, aListener, aName, aDir, aLang,
-                                  aData, aPrincipal, aInPrivateBrowsing) {
+                                  aData, aPrincipal, aInPrivateBrowsing,
+                                  aRequireInteraction) {
     var callbackPtr = ctypes.FunctionType(ctypes.stdcall_abi, ctypes.void_t).ptr;
 
     var DisplayToastNotification = sLibrary.declare("DisplayToastNotification",
@@ -115,6 +117,10 @@ ToastAlertService.prototype = {
                                      ctypes.bool,
                                      ctypes.jschar.ptr);
     CloseToastNotification(aName);
+  },
+
+  showPersistentNofitication: function(aPersistentData, aAlert, aAlertListener) {
+    sowAlert(aAlert, aAlertListener);
   },
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIAlertsService]),
