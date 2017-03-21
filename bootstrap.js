@@ -46,21 +46,21 @@ ToastAlertService.prototype = {
     if (!aAlert) {
       return;
     }
-    showNativeAlert(aAlert.imageURL,
-                    aAlert.title,
-                    aAlert.text,
-                    aAlert.textClickable,
-                    aAlert.cookie,
-                    aListener,
-                    aAlert.name);
+    this.showNativeAlert(aAlert.imageURL,
+                         aAlert.title,
+                         aAlert.text,
+                         aAlert.textClickable,
+                         aAlert.cookie,
+                         aListener,
+                         aAlert.name);
   },
 
   showAlertNotification: function(aImageUrl, aTitle, aText, aTextClickable,
                                   aCookie, aListener, aName, aDir, aLang,
                                   aData, aPrincipal, aInPrivateBrowsing,
                                   aRequireInteraction) {
-    showNativeAlert(aImageUrl, aTitle, aText, aTextClickable, aCookie, aListener, aName);
-  }
+    this.showNativeAlert(aImageUrl, aTitle, aText, aTextClickable, aCookie, aListener, aName);
+  },
 
   showNativeAlert: function(aImageUrl, aTitle, aText, aTextClickable,
                             aCookie, aListener, aName) {
@@ -85,7 +85,6 @@ ToastAlertService.prototype = {
       },
       { listener: aListener, cookie: aCookie });
     }
-
     var callbackClose = callbackPtr(function() {
       if (this.listener) {
         this.listener.observe(null, "alertfinished", this.cookie);
